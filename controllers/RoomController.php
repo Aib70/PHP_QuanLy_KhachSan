@@ -13,9 +13,22 @@ class RoomController {
     }
 
     // Hiển thị danh sách phòng
-    public function index() {
+   public function index() {
         $stmt = $this->room->readAll();
         $rooms = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // --- THÊM ĐOẠN NÀY ĐỂ THỐNG KÊ ---
+        $count_available = 0;
+        $count_booked = 0;
+        $count_cleaning = 0;
+
+        foreach($rooms as $r) {
+            if($r['status'] == 'Available') $count_available++;
+            elseif($r['status'] == 'Booked') $count_booked++;
+            elseif($r['status'] == 'Cleaning') $count_cleaning++;
+        }
+        // ---------------------------------
+
         include 'views/room/index.php';
     }
 

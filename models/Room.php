@@ -151,5 +151,13 @@ class Room {
         $stmt->execute();
         return $stmt;
     }
+    // hàm cập nhật trạng thái phòng nhanh.
+    public function updateStatusOnly($room_id, $status) {
+        $query = "UPDATE " . $this->table_name . " SET status = :status WHERE room_id = :room_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':status', $status);
+        $stmt->bindParam(':room_id', $room_id);
+        return $stmt->execute();
+    }
 }
 ?>

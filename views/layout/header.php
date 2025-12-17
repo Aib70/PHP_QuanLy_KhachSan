@@ -20,24 +20,31 @@
         
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav mx-auto"> 
-                <li class="nav-item"><a class="nav-link active" href="index.php?page=home">Discover</a></li>
+                <li class="nav-item"><a class="nav-link active" href="index.php?page=home">Tìm hiểu</a></li>
                 
                 <?php if (isset($_SESSION['user_id'])): ?>
                     <li class="nav-item">
-                       <a class="nav-link fw-bold" href="index.php?page=booking_history">My Orders</a>
+                       <a class="nav-link fw-bold" href="index.php?page=booking_history">Lịch sử đạt</a>
                     </li>
                 <?php endif; ?>
 
-                <li class="nav-item"><a class="nav-link" href="#">Special Deals</a></li>
-                <li class="nav-item"><a class="nav-link" href="#">About Us</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Giá ưu đãi</a></li>
+                <li class="nav-item"><a class="nav-link" href="#">Giớ Thiệu</a></li>
                 
                 <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin'): ?>
+                    
                     <li class="nav-item">
                         <a class="nav-link text-danger fw-bold" href="index.php?page=rooms">Admin Room</a>
                     </li>
+                    
                     <li class="nav-item">
                         <a class="nav-link text-primary fw-bold" href="index.php?page=admin_bookings">Admin Bookings</a>
                     </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link text-success fw-bold" href="index.php?page=staff">Admin Staff</a>
+                    </li>
+
                 <?php endif; ?>
             </ul>
             

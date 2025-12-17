@@ -109,8 +109,7 @@ class BookingController {
     // --- KHU VỰC ADMIN ---
 
     // Hiển thị danh sách tất cả đơn hàng
-    public function adminIndex() {
-        // Bảo mật: Chỉ Admin mới được vào
+   public function adminIndex() {
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header("Location: index.php?page=login");
             exit;
@@ -120,31 +119,67 @@ class BookingController {
         $db = $database->getConnection();
         $bookingModel = new Booking($db);
 
-        $stmt = $bookingModel->getAllBookings();
+        // SỬA DÒNG NÀY: Gọi hàm getActiveBookings
+        $stmt = $bookingModel->getActiveBookings(); 
         $bookings = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        include 'views/admin/bookings.php'; // Chúng ta sẽ tạo file này ở bước 3
+        include 'views/admin/bookings.php';
     }
 
     // Xử lý Duyệt/Hủy đơn
     public function adminUpdateStatus() {
-        // Bảo mật
         if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             die('Access Denied');
         }
 
-        $id = $_GET['id'];
-        $status = $_GET['status']; // 'Confirmed' hoặc 'Cancelled'
+        $booking_id = $_GET['id'];
+        $status = $_GET['status']; // Confirmed, Cancelled, Completed
+
+        $database = new Database();
+        $db = $database->getConnection();
+        $bookingModel = new Booking($db);
+        $roomModel = new Room($db);
+
+        // 1. Cập nhật trạng thái đơn hàng
+        if ($bookingModel->updateStatus($booking_id, $status)) {
+            
+            // 2. Lấy ID phòng của đơn hàng này
+            $room_id = $bookingModel->getRoomIdByBooking($booking_id);
+
+            // 3. LOGIC TỰ ĐỘNG CẬP NHẬT TRẠNG THÁI PHÒNG
+            if($room_id) {
+                if ($status == 'Confirmed') {
+                    // Nếu Duyệt đơn -> Phòng thành 'Booked' (Để ẩn khỏi Home)
+                    $roomModel->updateStatusOnly($room_id, 'Booked');
+                } 
+                elseif ($status == 'Completed') {
+                    // Nếu Trả phòng (Check-out) -> Phòng thành 'Available' (Hiện lại Home)
+                    $roomModel->updateStatusOnly($room_id, 'Available');
+                }
+                elseif ($status == 'Cancelled') {
+                    // Nếu Hủy đơn -> Phòng thành 'Available'
+                    $roomModel->updateStatusOnly($room_id, 'Available');
+                }
+            }
+
+            header("Location: index.php?page=admin_bookings&message=updated");
+        } else {
+            echo "Lỗi cập nhật!";
+        }
+    }
+    
+    public function adminHistory() {
+        if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') exit;
 
         $database = new Database();
         $db = $database->getConnection();
         $bookingModel = new Booking($db);
 
-        if ($bookingModel->updateStatus($id, $status)) {
-            header("Location: index.php?page=admin_bookings&message=updated");
-        } else {
-            echo "Lỗi cập nhật!";
-        }
+        // Lấy danh sách đơn đã xong/hủy
+        $stmt = $bookingModel->getAllHistory();
+        $history = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        include 'views/admin/history.php'; // Tạo file view này ở bước sau
     }
 }
 ?>

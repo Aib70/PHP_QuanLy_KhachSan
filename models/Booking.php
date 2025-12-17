@@ -30,7 +30,6 @@ class Booking {
 
     // 2. Lấy lịch sử đặt phòng của 1 user
     public function getHistory($user_id) {
-        // Join với bảng Rooms để lấy số phòng
         $query = "SELECT b.*, r.room_number 
                   FROM " . $this->table . " b
                   LEFT JOIN Rooms r ON b.room_id = r.room_id
@@ -45,7 +44,6 @@ class Booking {
 
     // 3. Hủy đơn đặt phòng (Chuyển trạng thái sang Cancelled)
     public function cancel($booking_id, $user_id) {
-        // Chỉ cho phép hủy nếu đơn đó thuộc về User này VÀ đang ở trạng thái Pending
         $query = "UPDATE " . $this->table . " 
                   SET status = 'Cancelled' 
                   WHERE booking_id = :booking_id 
@@ -53,12 +51,10 @@ class Booking {
                   AND status = 'Pending'";
 
         $stmt = $this->conn->prepare($query);
-
         $stmt->bindParam(':booking_id', $booking_id);
         $stmt->bindParam(':user_id', $user_id);
 
         if($stmt->execute()) {
-            // Kiểm tra xem có dòng nào bị ảnh hưởng không (nếu = 0 nghĩa là sai ID hoặc đơn không phải Pending)
             if($stmt->rowCount() > 0) {
                 return true;
             }
@@ -66,12 +62,14 @@ class Booking {
         return false;
     }
    
-    // 4. ADMIN: Lấy TẤT CẢ đơn đặt phòng (kèm thông tin người dùng)
-    public function getAllBookings() {
+    // 4. ADMIN: Chỉ lấy các đơn ĐANG HOẠT ĐỘNG (Pending, Confirmed)
+    // Để bảng quản lý không bị rác bởi các đơn đã xong
+    public function getActiveBookings() {
         $query = "SELECT b.*, r.room_number, u.username, u.full_name
                   FROM " . $this->table . " b
                   LEFT JOIN Rooms r ON b.room_id = r.room_id
                   LEFT JOIN Users u ON b.user_id = u.user_id
+                  WHERE b.status IN ('Pending', 'Confirmed')
                   ORDER BY b.created_at DESC";
         
         $stmt = $this->conn->prepare($query);
@@ -79,7 +77,21 @@ class Booking {
         return $stmt;
     }
 
-    // 5. ADMIN: Cập nhật trạng thái (Duyệt hoặc Hủy bất kỳ đơn nào)
+    // 5. ADMIN: Lấy lịch sử tất cả (Dùng cho trang Báo cáo hoặc Lịch sử riêng nếu cần)
+    public function getAllHistory() {
+        $query = "SELECT b.*, r.room_number, u.username, u.full_name
+                  FROM " . $this->table . " b
+                  LEFT JOIN Rooms r ON b.room_id = r.room_id
+                  LEFT JOIN Users u ON b.user_id = u.user_id
+                  WHERE b.status IN ('Completed', 'Cancelled')
+                  ORDER BY b.created_at DESC";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    // 6. ADMIN: Cập nhật trạng thái
     public function updateStatus($booking_id, $status) {
         $query = "UPDATE " . $this->table . " SET status = :status WHERE booking_id = :booking_id";
         $stmt = $this->conn->prepare($query);
@@ -89,6 +101,18 @@ class Booking {
 
         if($stmt->execute()) {
             return true;
+        }
+        return false;
+    }
+
+    // 7. Lấy ID phòng từ ID đơn hàng
+    public function getRoomIdByBooking($booking_id) {
+        $query = "SELECT room_id FROM " . $this->table . " WHERE booking_id = :booking_id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':booking_id', $booking_id);
+        $stmt->execute();
+        if($row = $stmt->fetch(PDO::FETCH_ASSOC)){
+            return $row['room_id'];
         }
         return false;
     }
